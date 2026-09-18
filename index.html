@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MyVicroads</title>
+
+ <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+  <!-- iPhone PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MyVicroads">
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- App Icon -->
+  <link rel="apple-touch-icon" href="./logonew.png">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+
+    /* Styling for the interactive QR URL editor overlay box */
+     .qr-input-controls {
+      margin: 15px 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      display: none;
+    }
+
+    .qr-input-controls input {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .qr-input-controls button {
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .qr-input-controls button:active {
+      background-color: #0056b3;
+    }
+    
+    /* FIX: Properly size and center the QR Code so camera scanners can read it */
+    #dynamic-qr-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      padding: 10px;
+      box-sizing: border-box;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 2;
+    }
+
+    #dynamic-qr-container canvas {
+      width: 315px !important;
+      height: 315px !important;
+      display: block !important;
+      margin: 0 auto !important;
+      margin-top: 20px;
+    }
+
+    #dynamic-qr-container img {
+      display: none !important;
+    }
+
+    :root {
+  --vicroads-green: #006a4e;
+  --vicroads-pill: #e2f0d9;
+  --nav-bg: #f8f9fa;
+  --text-inactive: #444746;
+  --m3-easing: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 390px;
+  height: 100px;
+  margin: 0 auto;
+  background-color: var(--nav-bg);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #e1e3e1;
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+.bottom-nav .nav-item * {
+  pointer-events: none;
+}
+
+.bottom-nav .nav-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex: 1;
+  gap: 4px;
+  color: var(--text-inactive);
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transform: translateY(-10px);
+}
+
+/* Sliding Pill Background */
+.nav-pill-indicator {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  height: 32px;
+  background-color: var(--vicroads-pill);
+  border-radius: 16px;
+  z-index: 0;
+  pointer-events: none;
+  transition: transform 0.4s var(--m3-easing), width 0.4s var(--m3-easing);
+}
+
+.icon-wrapper {
+  width: 64px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.icon-img {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  transition: opacity 0.4s var(--m3-easing), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Base inactive icon rule */
+.icon-outline {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 1. Home tab inactive icon size */
+.bottom-nav .nav-item:nth-child(2) .icon-outline {
+  transform: scale(1.3); /* Adjust size for Home */
+}
+
+/* 2. Vehicles tab inactive icon size */
+.bottom-nav .nav-item:nth-child(3) .icon-outline {
+  transform: scale(1.3); /* Adjust size for Vehicles */
+}
+
+/* 3. Licence tab inactive icon size */
+.bottom-nav .nav-item:nth-child(4) .icon-outline {
+  transform: scale(1); /* Adjust size for Licence */
+}
+
+/* 4. Payments tab inactive icon size */
+.bottom-nav .nav-item:nth-child(5) .icon-outline {
+  transform: scale(1); /* Adjust size for Payments */
+}
+
+/* 5. Profile tab inactive icon size */
+.bottom-nav .nav-item:nth-child(6) .icon-outline {
+  transform: scale(0.9); /* Adjust size for Profile */
+}
+
+.icon-filled {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.nav-label {
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.25s ease, font-weight 0.25s ease;
+}
+
+/* Active State */
+.nav-item.active {
+  color: var(--vicroads-green);
+}
+
+.nav-item.active .nav-label {
+  font-weight: 700;
+}
+
+.nav-item.active .icon-outline {
+  opacity: 0;
+  transform: scale(1.1);
+}
+
+.nav-item.active .icon-filled {
+  opacity: 1;
+  transform: scale(1.05) translateY(-1px);
+}
+  </style>
+</head>
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js');
+}
+
+self.addEventListener("install", () => {
+    self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+    event.waitUntil(clients.claim());
+});
+</script>
+
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash" class="page">
+  <div class="app" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh;">
+    <img src="myvicroadlogo.png" alt="VicRoads Logo" style="height:90px; margin-bottom:500px; filter:none;">
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);">
+      <div class="transition-spinner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PIN PAGE -->
+<div id="pin" class="page">
+  <div class="app" style="display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-height:100vh; padding: 0 24px 30px;">
+    <img src="lock.png" style="width:80px; height:80px; object-fit:contain; margin-bottom:24px;">
+    <div style="font-size:20px; font-weight:700; color:#111; margin-bottom:70px; text-align:center;">Please enter your existing PIN code</div>
+
+    <!-- Dots -->
+    <div style="display:flex; gap:35px; margin-bottom:80px;" id="pinDots">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+
+    <!-- Keypad -->
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0; width:100%; max-width:320px; text-align:center;">
+      <div class="pin-key" onclick="pinPress('1')">1</div>
+      <div class="pin-key" onclick="pinPress('2')">2</div>
+      <div class="pin-key" onclick="pinPress('3')">3</div>
+      <div class="pin-key" onclick="pinPress('4')">4</div>
+      <div class="pin-key" onclick="pinPress('5')">5</div>
+      <div class="pin-key" onclick="pinPress('6')">6</div>
+      <div class="pin-key" onclick="pinPress('7')">7</div>
+      <div class="pin-key" onclick="pinPress('8')">8</div>
+      <div class="pin-key" onclick="pinPress('9')">9</div>
+      <div class="pin-key pin-key-muted">Forgot?</div>
+      <div class="pin-key" onclick="pinPress('0')">0</div>
+      <div class="pin-key" onclick="pinDelete()">⌫</div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING AFTER PIN -->
+<div id="pin-loading" class="page">
+  <div class="app" style="display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-height:100vh; padding: 0 24px 60px;">
+    
+    <div style="position:absolute; top:0; left:0; right:0; display:flex; flex-direction:column; align-items:center; padding-top:180px;">
+      <img src="lock.png" style="width:80px; height:80px; object-fit:contain; margin-bottom:24px;">
+      <div style="font-size:20px; font-weight:700; color:#111; margin-bottom:40px; text-align:center;">Please enter your existing PIN code</div>
+      <div class="transition-spinner"></div>
+    </div>
+
+    <!-- Grayed out keypad -->
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0; width:100%; max-width:320px; text-align:center;">
+      <div class="pin-key" style="color:#ccc;">1</div>
+      <div class="pin-key" style="color:#ccc;">2</div>
+      <div class="pin-key" style="color:#ccc;">3</div>
+      <div class="pin-key" style="color:#ccc;">4</div>
+      <div class="pin-key" style="color:#ccc;">5</div>
+      <div class="pin-key" style="color:#ccc;">6</div>
+      <div class="pin-key" style="color:#ccc;">7</div>
+      <div class="pin-key" style="color:#ccc;">8</div>
+      <div class="pin-key" style="color:#ccc;">9</div>
+      <div class="pin-key pin-key-muted" style="color:#ccc;">Forgot?</div>
+      <div class="pin-key" style="color:#ccc;">0</div>
+      <div class="pin-key" style="color:#ccc;">⌫</div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<div id="home" class="page">
+  <div class="app">
+
+    <!-- HEADER -->
+    <header class="top-header">
+  <div class="animated-fade-bg"></div>
+  <div class="hologram-shimmer"></div>
+
+  <button class="back" onclick="showPage('homepage')">
+    <img src="backbutton.png" alt="Back" style="width:8px; height:14px;">
+  </button>
+  
+  <div class="title">View details</div>
+</header>
+
+    <div class="refresh lastRefreshed"></div>
+
+    <!-- YELLOW LICENCE BAR -->
+   <div class="bar-shadow"></div>
+<div class="colour-bar">
+  <p class="bar-title">LEARNER PERMIT</p>
+  <p class="bar-subtitle">Victoria Australia</p>
+  <img src="IMG_0437.png" alt="Logo" class="bar-logo">
+
+  <div class="bar-line line-2"></div>
+  <div class="bar-line line-3"></div>
+</div>
+    
+
+ <!-- IMAGE SECTION -->
+<!-- IMAGE SECTION -->
+    <div class="image-section qr-pi wrap" id="holoContainer">
+  <img src="IMG_1166.png" alt="Licence QR Section">
+  
+  <img src="overlay-image.png" alt="Overlay" class="image-overlay">
+  <img src="coat-of-arms.png" alt="Victorian Coat of Arms" class="bar-logo2" style="height: 36px; width: auto;">
+  <button class="qr-hotspot" onclick="showPage('qr')">Reveal QR code</button>
+</div>
+<div class="bar-line line-2"></div>
+
+    <!-- TABS -->
+    <div class="segmented">
+      <div class="slider-pill"></div>
+      <button class="active" onclick="switchTab('home')">Permit</button>
+      <button onclick="switchTab('identity')">Identity</button>
+      <button onclick="switchTab('age')">Age</button>
+    </div>
+
+
+  <!-- TAB 1: Permit -->
+   <div class="details tab-content" id="tab-home" style="opacity:1; transition: opacity 0.6s ease;">
+    <h2>JONATHAN F SAWYER</h2>
+    <div class="divider"></div>
+    <div class="row">
+      <div><span>Permit number</span><strong>059481231</strong></div>
+      <div><span>Expiry</span><strong>20 Apr 2034</strong></div>
+    </div>
+    <div class="row">
+      <div>
+        <span>Permit type</span>
+        <p class="car-permit">Car <span class="permit-badge"><img src="IMG_0132.jpeg" alt="Permit Icon" class="permit-icon" /></span></p>
+      </div>
+      <div class="dob-cell"><span>Date of birth</span><strong>13 April 2008</strong></div>
+    </div>
+    <div class="divider"></div>
+    <div class="single"><span>Address</span><strong>109 LOWER DANDENONG RD</strong><strong>MENTONE VIC 3194</strong></div>
+    <div class="divider"></div>
+    <div class="single"><span>Signature</span><img src="signature.png" alt="Driver Signature" class="signature-image" /></div>
+    <div class="section-banner"><h3>Car learner permit details</h3></div>
+    <div class="grid-2">
+      <div class="cell"><span>Permit status</span><strong><img src="Tick.png" alt="Tick" class="status-tick" />Current</strong></div>
+      <div class="cell"><span>Proficiency</span><strong><img src="IMG_0132.jpeg" alt="Permit Icon" class="proficiency-logo" />Learner</strong></div>
+      <div class="cell"><span>Issue date</span><strong>20 Apr 2024</strong></div>
+      <div class="cell"><span>Expiry</span><strong>20 Apr 2034</strong></div>
+    </div>
+    <div class="section-banner"><h3>Other details</h3></div>
+    <div class="cell"><span>Conditions</span><strong/>No Conditions</strong></div>
+    <div class="divider"></div>
+    <div class="single card-number-row">
+      <span>Card number</span>
+      <div class="card-number-wrapper">
+        <strong id="cardNumber" data-real="P4999649">••••••••••••</strong>
+        <button class="eye-btn" id="toggleEye" type="button"><img src="close.png" class="eye-icon" id="eyeIcon" alt="Hide card number"></button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <!-- Barcode Trigger -->
+<div class="single" onclick="openBarcodeModal()" style="cursor: pointer;">
+  <span>Victoria Police barcode</span>
+  <img src="barcode.png" class="barcode-logo" />
+</div>
+
+<!-- Slide-Up Barcode Page -->
+<div id="barcodeModal" class="barcode-modal">
+  <div class="barcode-modal-header">
+    <div class="title">Verify Barcode</div>
+    <button class="close-btn" onclick="closeBarcodeModal()">Close</button>
+  </div>
+  <div class="barcode-modal-body">
+    <h3>Victoria Police barcode</h3>
+    <img src="vicpolice.jpg" alt="Victoria Police Barcode" class="modal-barcode-img">
+    <p class="barcode-desc">
+      The person who scans this code will only validate your licence number. No other data will be shared. Please see our <a href="#">privacy policy</a> for more information.
+    </p>
+  </div>
+</div>
+  </div>
+
+  <!-- TAB 2: Identity -->
+   <div class="details tab-content" id="tab-identity" style="opacity:1; transition: opacity 0.6s ease;">
+    <h2>JONATHAN F SAWYER</h2>
+    <div class="divider"></div>
+    <div class="single"><span>Address</span><strong>109 LOWER DANDENONG RD</strong><strong>MENTONE VIC 3194</strong></div>
+    <div class="divider"></div>
+    <div class="single"><span>Signature</span><img src="signature.png" alt="Driver Signature" class="signature-image" /></div>
+  </div>
+
+  <!-- TAB 3: Age -->
+  <div class="details tab-content" id="tab-age" style="opacity:0; pointer-events:none; transition: opacity 0.3s ease;">
+    <div class="age-label">Age status</div>
+    <div class="age-row">
+      <div class="age-check">✓</div>
+      <div class="age-value">Over 18</div>
+    </div>
+  </div>
+
+</div> <!-- Closes .app -->
+</div> <!-- Closes #home -->
+
+
+
+
+
+
+
+<!-- homepage page -->
+
+
+<div id="homepage" class="page">
+    <div class="app">
+
+<div class="app">
+
+ <div class="header">
+  <h2 id="secretText" class="welcome secret-text-trigger">Hi Jonathan</h2>
+</div>
+
+<div class="cards-scroll">
+    
+    <div style="text-decoration:none; color:inherit; display:block;" onclick="showPage('demerit')">
+  <div class="demerit-card">
+    <img src="0d9abd62a_IMG_6900.jpg" alt="Demerit Points" class="demerit-img">
+    <h3 class="demerit-text">Demerit points balance</h3>
+  </div>
+</div>
+
+   <div style="text-decoration:none; color:inherit; display:block;" onclick="showPage('vehicle')">
+      <div class="vehicle-card">
+        <img src="Vechile.jpg" class="vehicle-img">
+        <h3 class="vehicle-text">Registered vehicles</h3>
+      </div>
+    </div>
+
+    </div>
+    
+    
+    <a href="javascript:void(0)" class="ll-card-hero" onclick="showPage('home')">
+        <div class="ll-hero-text">
+          <strong>My licence</strong>
+          <span>Tap to view licence</span>
+        </div>
+        <div class="ll-hero-expand">⤢</div>
+      </a>
+
+  <nav class="bottom-nav">
+  <div class="nav-pill-indicator"></div>
+
+  <!-- Home Tab -->
+  <button class="nav-item active" type="button">
+    <div class="icon-wrapper">
+      <img src="home logo.png" alt="Home Inactive" class="icon-img icon-outline" />
+      <img src="homenavactive.png" alt="Home Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Home</span>
+  </button>
+
+  <!-- Vehicles Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="car logo.png" alt="Vehicles Inactive" class="icon-img icon-outline" />
+      <img src="activecariconnav.png" alt="Vehicles Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Vehicles</span>
+  </button>
+
+  <!-- Licence Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="licenceiconnav.png" alt="Licence Inactive" class="icon-img icon-outline" />
+      <img src="License-active.png" alt="Licence Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Licence</span>
+  </button>
+
+  <!-- Payments Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="payment logo.png" alt="Payments Inactive" class="icon-img icon-outline" />
+      <img src="activepaymenticonnav.png" alt="Payments Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Payments</span>
+  </button>
+
+  <!-- Profile Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="profile logo.png" alt="Profile Inactive" class="icon-img icon-outline" />
+      <img src="activeprofileiconnav.png" alt="Profile Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Profile</span>
+  </button>
+</nav>
+
+
+</div>
+</div>
+</div>
+
+
+
+
+
+
+
+<!-- demerit page -->
+
+<div id="demerit" class="page">
+    <div class="app">
+
+      <header class="top-header">
+      <button class="back" onclick="showPage('homepage')">‹</button>
+      <div class="title">Demerit points</div>
+    </header>
+
+    <div class="content">
+
+      <div class="balance-card">
+        <div class="balance-title">Current Balance</div>
+
+        <div class="balance-row">
+          <div class="balance-big">0</div>
+          <div class="balance-outof">/ 12</div>
+        </div>
+
+        <div class="balance-sub">demerit points</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Information</div>
+        <div class="card-text">
+          Demerit points are recorded against your licence when you commit certain driving offences.
+          If you accumulate too many points, your licence may be suspended.
+        </div>
+      </div>
+
+      <div class="card white">
+        <div class="card-title">Good driving record</div>
+        <div class="card-text">
+          You currently have 0 demerit points. Keep up the safe driving!
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- vehicle page -->
+
+<div id="vehicles" class="page">
+  <div class="app">
+
+    <div class="vehicles-content">
+      <h1 class="vehicles-heading">Vehicles</h1>
+
+      <!-- First card alone -->
+      <div class="vehicles-card">
+        <a href="javascript:void(0)" class="vehicles-item">
+          <div class="vehicles-item-text">
+            <h3>My registered vehicles</h3>
+            <p>View all registered vehicles</p>
+          </div>
+        </a>
+      </div>
+
+      <!-- Second grouped card -->
+      <div class="vehicles-card">
+        <a href="javascript:void(0)" class="vehicles-item">
+          <div class="vehicles-item-text">
+            <h3>Manage registration renewal</h3>
+            <p>Renew your registration when it's due</p>
+          </div>
+        </a>
+        <div class="vehicles-divider"></div>
+        <a href="javascript:void(0)" class="vehicles-item">
+          <div class="vehicles-item-text">
+            <h3>Change your garage address</h3>
+          </div>
+        </a>
+        <div class="vehicles-divider"></div>
+        <a href="javascript:void(0)" class="vehicles-item">
+          <div class="vehicles-item-text">
+            <h3>Apprentice registration discount</h3>
+          </div>
+        </a>
+        <div class="vehicles-divider"></div>
+        <a href="javascript:void(0)" class="vehicles-item">
+          <div class="vehicles-item-text">
+            <h3>Unregistered vehicle permits</h3>
+          </div>
+        </a>
+        <div class="vehicles-divider"></div>
+        <a href="javascript:void(0)" class="vehicles-item">
+          <div class="vehicles-item-text">
+            <h3>My vehicle reports</h3>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  <nav class="bottom-nav">
+  <div class="nav-pill-indicator"></div>
+
+  <!-- Home Tab -->
+  <button class="nav-item active" type="button">
+    <div class="icon-wrapper">
+      <img src="home logo.png" alt="Home Inactive" class="icon-img icon-outline" />
+      <img src="homenavactive.png" alt="Home Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Home</span>
+  </button>
+
+  <!-- Vehicles Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="car logo.png" alt="Vehicles Inactive" class="icon-img icon-outline" />
+      <img src="activecariconnav.png" alt="Vehicles Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Vehicles</span>
+  </button>
+
+  <!-- Licence Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="licenceiconnav.png" alt="Licence Inactive" class="icon-img icon-outline" />
+      <img src="License-active.png" alt="Licence Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Licence</span>
+  </button>
+
+  <!-- Payments Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="payment logo.png" alt="Payments Inactive" class="icon-img icon-outline" />
+      <img src="activepaymenticonnav.png" alt="Payments Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Payments</span>
+  </button>
+
+  <!-- Profile Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="profile logo.png" alt="Profile Inactive" class="icon-img icon-outline" />
+      <img src="activeprofileiconnav.png" alt="Profile Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Profile</span>
+  </button>
+</nav>
+
+
+</div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- payment page -->
+
+<div id="payment" class="page">
+  <div class="app">
+
+    <header class="top-header">
+      <div class="title">Payments</div>
+    </header>
+
+    <div class="payment-content">
+      <h1 class="payment-heading">Payments</h1>
+
+      <div class="payment-card">
+        <a href="javascript:void(0)" class="payment-item">
+          <div class="payment-item-text">
+            <h3>Manage payment methods</h3>
+            <p>Store your credit card and bank account details to make payments</p>
+          </div>
+        </a>
+        <div class="payment-divider"></div>
+        <a href="javascript:void(0)" class="payment-item">
+          <div class="payment-item-text">
+            <h3>Direct debit payments</h3>
+            <p>Manage direct debit settings</p>
+          </div>
+        </a>
+        <div class="payment-divider"></div>
+        <a href="javascript:void(0)" class="payment-item">
+          <div class="payment-item-text">
+            <h3>Transaction history</h3>
+            <p>View recent transactions made using your myVicRoads account</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  <nav class="bottom-nav">
+  <div class="nav-pill-indicator"></div>
+
+  <!-- Home Tab -->
+  <button class="nav-item active" type="button">
+    <div class="icon-wrapper">
+      <img src="home logo.png" alt="Home Inactive" class="icon-img icon-outline" />
+      <img src="homenavactive.png" alt="Home Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Home</span>
+  </button>
+
+  <!-- Vehicles Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="car logo.png" alt="Vehicles Inactive" class="icon-img icon-outline" />
+      <img src="activecariconnav.png" alt="Vehicles Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Vehicles</span>
+  </button>
+
+  <!-- Licence Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="licenceiconnav.png" alt="Licence Inactive" class="icon-img icon-outline" />
+      <img src="License-active.png" alt="Licence Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Licence</span>
+  </button>
+
+  <!-- Payments Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="payment logo.png" alt="Payments Inactive" class="icon-img icon-outline" />
+      <img src="activepaymenticonnav.png" alt="Payments Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Payments</span>
+  </button>
+
+  <!-- Profile Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="profile logo.png" alt="Profile Inactive" class="icon-img icon-outline" />
+      <img src="activeprofileiconnav.png" alt="Profile Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Profile</span>
+  </button>
+</nav>
+
+
+</div>
+</div>
+</div>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- profile page -->
+
+
+<div id="profile" class="page">
+  <div class="app">
+   <h1 class="profile-heading">Profile</h1>
+
+    <div class="profile-content">
+
+      <!-- Card 1 -->
+      <div class="profile-card">
+        <div class="profile-section-title">Profile and settings</div>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item">
+          <span>Personal information</span>
+        </a>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item">
+          <span>Addresses</span>
+        </a>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item">
+          <span>Security settings</span>
+        </a>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item">
+          <span>Passkey settings</span>
+          <span class="profile-chevron">›</span>
+        </a>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="profile-card">
+        <div class="profile-section-title">App controls</div>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item profile-item-stack">
+          <div>
+            <div>Biometrics and settings</div>
+            <div class="profile-sub">Enable biometrics and deactivate card or account</div>
+          </div>
+          <span class="profile-chevron">›</span>
+        </a>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item">
+          <span>Help and info</span>
+          <span class="profile-chevron">›</span>
+        </a>
+        <div class="profile-divider"></div>
+        <a href="javascript:void(0)" class="profile-item">
+          <span>Provide app feedback</span>
+          <span class="profile-external">⬀</span>
+        </a>
+      </div>
+
+      <!-- Card 3 — Log out -->
+      <div class="profile-card">
+        <a href="javascript:void(0)" class="profile-item">
+          <span class="profile-logout">⎋ Log out</span>
+        </a>
+      </div>
+
+      <div class="profile-version">App version 1.3.5</div>
+
+    </div>
+
+<nav class="bottom-nav">
+  <div class="nav-pill-indicator"></div>
+
+  <!-- Home Tab -->
+  <button class="nav-item active" type="button">
+    <div class="icon-wrapper">
+      <img src="home logo.png" alt="Home Inactive" class="icon-img icon-outline" />
+      <img src="homenavactive.png" alt="Home Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Home</span>
+  </button>
+
+  <!-- Vehicles Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="car logo.png" alt="Vehicles Inactive" class="icon-img icon-outline" />
+      <img src="activecariconnav.png" alt="Vehicles Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Vehicles</span>
+  </button>
+
+  <!-- Licence Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="licenceiconnav.png" alt="Licence Inactive" class="icon-img icon-outline" />
+      <img src="License-active.png" alt="Licence Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Licence</span>
+  </button>
+
+  <!-- Payments Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="payment logo.png" alt="Payments Inactive" class="icon-img icon-outline" />
+      <img src="activepaymenticonnav.png" alt="Payments Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Payments</span>
+  </button>
+
+  <!-- Profile Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="profile logo.png" alt="Profile Inactive" class="icon-img icon-outline" />
+      <img src="activeprofileiconnav.png" alt="Profile Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Profile</span>
+  </button>
+</nav>
+
+
+</div>
+</div>
+</div>
+
+
+
+
+
+
+
+<!-- licence nav page -->
+
+<div id="licence-landing" class="page">
+  <div class="app">
+<h1 class="ll-heading">Licence</h1>
+    <div class="ll-content">
+
+      <!-- Blue licence card -->
+      <a href="javascript:void(0)" class="ll-card-hero" onclick="showPage('home')">
+        <div class="ll-hero-text">
+          <strong>My licence</strong>
+          <span>Tap to view licence</span>
+        </div>
+        <div class="ll-hero-expand">⤢</div>
+      </a>
+
+      <!-- Services list card -->
+      <div class="ll-card">
+        <a href="javascript:void(0)" class="ll-item" onclick="showPage('demerit')">
+          <span>View demerit points</span>
+        </a>
+        <div class="ll-divider"></div>
+        <a href="javascript:void(0)" class="ll-item ll-item-stack">
+          <span>Manage licence renewal</span>
+          <span class="ll-sub">Renew your licence when it's due</span>
+        </a>
+        <div class="ll-divider"></div>
+        <a href="javascript:void(0)" class="ll-item">
+          <span>Order driver history report</span>
+        </a>
+        <div class="ll-divider"></div>
+        <a href="javascript:void(0)" class="ll-item">
+          <span>Update address on licence</span>
+        </a>
+        <div class="ll-divider"></div>
+        <a href="javascript:void(0)" class="ll-item">
+          <span>Access myLearners</span>
+        </a>
+        <div class="ll-divider"></div>
+        <a href="javascript:void(0)" class="ll-item">
+          <span>Replace licence</span>
+        </a>
+      </div>
+
+      <!-- Verify card -->
+      <div class="ll-card">
+        <a href="javascript:void(0)" class="ll-item ll-item-verify">
+          <span class="ll-verify-icon">⊞</span>
+          <span>Verify someone's licence</span>
+        </a>
+      </div>
+
+    </div>
+
+  <nav class="bottom-nav">
+  <div class="nav-pill-indicator"></div>
+
+  <!-- Home Tab -->
+  <button class="nav-item active" type="button">
+    <div class="icon-wrapper">
+      <img src="home logo.png" alt="Home Inactive" class="icon-img icon-outline" />
+      <img src="homenavactive.png" alt="Home Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Home</span>
+  </button>
+
+  <!-- Vehicles Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="car logo.png" alt="Vehicles Inactive" class="icon-img icon-outline" />
+      <img src="activecariconnav.png" alt="Vehicles Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Vehicles</span>
+  </button>
+
+  <!-- Licence Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="licenceiconnav.png" alt="Licence Inactive" class="icon-img icon-outline" />
+      <img src="License-active.png" alt="Licence Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Licence</span>
+  </button>
+
+  <!-- Payments Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="payment logo.png" alt="Payments Inactive" class="icon-img icon-outline" />
+      <img src="activepaymenticonnav.png" alt="Payments Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Payments</span>
+  </button>
+
+  <!-- Profile Tab -->
+  <button class="nav-item" type="button">
+    <div class="icon-wrapper">
+      <img src="profile logo.png" alt="Profile Inactive" class="icon-img icon-outline" />
+      <img src="activeprofileiconnav.png" alt="Profile Active" class="icon-img icon-filled" />
+    </div>
+    <span class="nav-label">Profile</span>
+  </button>
+</nav>
+
+
+</div>
+</div>
+</div>
+
+
+
+
+
+
+<!-- qr page -->
+
+  <div id="qr" class="page">
+    <div class="app">
+
+      <header class="top">
+      <div class="title">Verify Licence</div>
+      <button class="close" onclick="closeQR()">Close</button>
+    </header>
+
+    <div class="content">
+      <div class="qr-wrap">
+        <div class="qr">
+          <!-- placeholder QR shown during loading -->
+          <img src="qrfake.png" alt="QR Placeholder" id="qrPlaceholder" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;">
+          
+          <!-- Dynamic QR Container -->
+          <div id="dynamic-qr-container"></div>
+
+          <div class="overlay" id="overlay">
+            <div class="loader"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls to update QR destination URL -->
+     <!-- Controls to update QR destination URL -->
+<div class="qr-input-controls">
+  <input
+    type="url"
+    id="qrUrlInput"
+    placeholder="Paste a link here..."
+    value="https://google.com"
+    onkeydown="if (event.key === 'Enter') updateDynamicQR()"
+  >
+  <button onclick="updateDynamicQR()">Update QR Code</button>
+</div>
+
+      <div class="expires">
+        QR expires <span id="timer">02:00</span>
+      </div>
+
+      <div class="desc">
+        By presenting this QR code you <strong>consent</strong> to share some or all of your driver licence information,
+        including with scanners, venues and law enforcement agencies. They may retain your information
+        in accordance with their business practices and legal requirements.
+      </div>
+
+      <div class="sharing-title">You're sharing:</div>
+      <ul>
+        <li>Victorian driver licence photo</li>
+        <li>Full name, birth date and address</li>
+        <li>Licence number, type and expiry date</li>
+        <li>Licence status</li>
+        <li id="proficiencyToggle" onclick="proficiencyClicked()">Proficiency</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Dynamic QR Code Library Import -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+ <script>
+let lastTab = 'home';
+let dynamicQrObj = null;
+
+function updateDynamicQR() {
+    const urlInput = document.getElementById("qrUrlInput").value.trim();
+    const qrContainer = document.getElementById("dynamic-qr-container");
+
+    if (!urlInput) {
+        alert("Please enter a URL.");
+        return;
+    }
+
+    while (qrContainer.firstChild) {
+        qrContainer.removeChild(qrContainer.firstChild);
+    }
+
+    try {
+        new QRCode(qrContainer, {
+            text: urlInput,
+            width: 315,
+            height: 315,
+            correctLevel: QRCode.CorrectLevel.L
+        });
+    } catch (error) {
+        console.error("QR generation error:", error);
+        alert("This URL is too large for the QR generator.");
+    }
+}
+
+let scrollUnlocked = true;
+let homeTapTimestamps = [];
+
+function handleHomeNavTap() {
+  const now = Date.now();
+  homeTapTimestamps.push(now);
+  homeTapTimestamps = homeTapTimestamps.filter(t => now - t <= 2000);
+
+  if (homeTapTimestamps.length >= 5) {
+    scrollUnlocked = !scrollUnlocked;
+    homeTapTimestamps = [];
+    applyScrollLockState();
+    playToggleSound(scrollUnlocked);
+  }
+}
+
+function applyScrollLockState() {
+  const gatedContainers = [
+    document.querySelector('#homepage .cards-scroll'),
+    document.querySelector('#vehicles .vehicles-content'),
+    document.querySelector('#licence-landing .ll-content'),
+    document.querySelector('#payment .payment-content'),
+    document.querySelector('#profile .profile-content')
+  ];
+
+  gatedContainers.forEach(el => {
+    if (!el) return;
+    el.style.overflowY = scrollUnlocked ? 'auto' : 'hidden';
+    el.style.touchAction = scrollUnlocked ? 'pan-y' : 'none';
+  });
+}
+
+let seconds = 120;
+let timerStarted = false;
+let interval = null;
+
+function closeQR() {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById('home').style.display = 'block';
+  updateRefreshTime();
+  resetQR();
+
+  const homeSeg = document.querySelector('#home .segmented');
+  if (homeSeg) {
+    const buttons = homeSeg.querySelectorAll('button');
+    const pill = homeSeg.querySelector('.slider-pill');
+    const idx = { 'home': 0, 'identity': 1, 'age': 2 }[lastTab];
+    if (pill && buttons[idx]) {
+      pill.style.transition = 'none';
+      pill.style.left = buttons[idx].offsetLeft + 'px';
+      pill.style.width = buttons[idx].offsetWidth + 'px';
+      requestAnimationFrame(() => { pill.style.transition = ''; });
+    }
+    buttons.forEach((b, i) => b.classList.toggle('active', i === idx));
+  }
+
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+  });
+  const tabMap = { 'home': 'tab-home', 'identity': 'tab-identity', 'age': 'tab-age' };
+  const target = document.getElementById(tabMap[lastTab]);
+  if (target) {
+    target.style.opacity = '1';
+    target.style.pointerEvents = 'auto';
+  }
+}
+
+function render() {
+  const el = document.getElementById("timer");
+  if (!el) return;
+  const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const s = String(seconds % 60).padStart(2, "0");
+  el.textContent = `${m}:${s}`;
+}
+
+function startTimer() {
+  if (timerStarted) return;
+  timerStarted = true;
+  interval = setInterval(() => {
+    if (seconds > 0) seconds--;
+    render();
+  }, 1000);
+}
+
+function resetQR() {
+  seconds = 120;
+  timerStarted = false;
+  if (interval) clearInterval(interval);
+  interval = null;
+  render();
+}
+
+function updateRefreshTime() {
+  const now = new Date();
+  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const day = days[now.getDay()];
+  const date = String(now.getDate()).padStart(2, "0");
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  let hours = now.getHours();
+  let minutes = String(now.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "pm" : "am";
+  hours = hours % 12 || 12;
+  const formatted = `${day} ${date} ${month} ${year} ${hours}:${minutes}${ampm}`;
+  document.querySelectorAll(".lastRefreshed").forEach(el => {
+    el.innerHTML = "<strong>Last refreshed:</strong> " + formatted;
+  });
+}
+
+let pinValue = '';
+const correctPin = '000000';
+
+function pinPress(digit) {
+  if (pinValue.length >= 6) return;
+  pinValue += digit;
+
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinValue.length));
+
+  if (pinValue.length === 6) {
+    setTimeout(() => {
+      if (pinValue === correctPin) {
+        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+        document.getElementById('pin-loading').style.display = 'block';
+
+        setTimeout(() => {
+          document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+          document.getElementById('splash').style.display = 'block';
+
+          setTimeout(() => {
+            showPage('homepage');
+          }, 700);
+        }, 1000);
+
+      } else {
+        pinValue = '';
+        dots.forEach(d => d.classList.remove('filled'));
+      }
+    }, 200);
+  }
+}
+
+function pinDelete() {
+  if (pinValue.length === 0) return;
+  pinValue = pinValue.slice(0, -1);
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinValue.length));
+}
+
+let currentNavIndex = 0;
+
+function updateNavPill(nav, activeIndex, animate = true) {
+  if (!nav) return;
+  
+  const items = nav.querySelectorAll('.nav-item');
+  const indicator = nav.querySelector('.nav-pill-indicator');
+  
+  items.forEach((item, idx) => {
+    item.classList.toggle('active', idx === activeIndex);
+  });
+
+  const activeItem = items[activeIndex];
+  if (activeItem && indicator) {
+    const iconWrapper = activeItem.querySelector('.icon-wrapper');
+    if (!iconWrapper) return;
+
+    const iconRect = iconWrapper.getBoundingClientRect();
+    const navRect = nav.getBoundingClientRect();
+    const leftOffset = iconRect.left - navRect.left;
+
+    if (!animate) {
+      indicator.style.transition = 'none';
+      indicator.style.width = `${iconRect.width}px`;
+      indicator.style.transform = `translateX(${leftOffset}px)`;
+      indicator.offsetHeight; 
+      indicator.style.transition = '';
+    } else {
+      indicator.style.width = `${iconRect.width}px`;
+      indicator.style.transform = `translateX(${leftOffset}px)`;
+    }
+  }
+}
+
+function showPage(pageId) {
+  const pages = document.querySelectorAll(".page");
+
+  if (pageId === 'home') {
+    const overlay = document.createElement('div');
+    overlay.id = 'transition-overlay';
+    document.body.appendChild(overlay);
+    overlay.innerHTML = `<div class="transition-spinner"></div>`;
+    requestAnimationFrame(() => {
+      overlay.classList.add('slide-in');
+    });
+    setTimeout(() => {
+      pages.forEach(p => p.style.display = 'none');
+      document.getElementById('home').style.display = 'block';
+      updateRefreshTime();
+
+      const homeSeg = document.querySelector('#home .segmented');
+      if (homeSeg) {
+        const firstBtn = homeSeg.querySelector('button');
+        const pill = homeSeg.querySelector('.slider-pill');
+        if (pill && firstBtn) {
+          pill.style.transition = 'none';
+          pill.style.left = firstBtn.offsetLeft + 'px';
+          pill.style.width = firstBtn.offsetWidth + 'px';
+          requestAnimationFrame(() => { pill.style.transition = ''; });
+        }
+      }
+
+      overlay.classList.add('fade-out');
+      setTimeout(() => overlay.remove(), 300);
+    }, 2000);
+    return;
+  }
+
+  const navIndexMap = { 
+    'homepage': 0, 
+    'vehicles': 1, 
+    'licence-landing': 2, 
+    'payment': 3, 
+    'profile': 4 
+  };
+  
+  const targetIndex = navIndexMap[pageId];
+  const previousIndex = currentNavIndex;
+
+  if (targetIndex !== undefined) {
+    currentNavIndex = targetIndex;
+  }
+
+  pages.forEach(p => p.style.display = "none");
+  const targetPage = document.getElementById(pageId);
+  if (!targetPage) return;
+  targetPage.style.display = "block";
+
+  if (targetIndex !== undefined) {
+    requestAnimationFrame(() => {
+      const activeNav = targetPage.querySelector('.bottom-nav');
+      if (activeNav) {
+        updateNavPill(activeNav, previousIndex, false);
+        requestAnimationFrame(() => {
+          updateNavPill(activeNav, targetIndex, true);
+        });
+      }
+    });
+  }
+
+  updateRefreshTime();
+
+  if (pageId === "qr") {
+    resetQR();
+    updateDynamicQR();
+
+    const overlayQR = document.getElementById("overlay");
+    const expires = document.querySelector(".expires");
+    const qrContainer = document.getElementById("dynamic-qr-container");
+    const qrPlaceholder = document.getElementById("qrPlaceholder");
+    const qr = document.querySelector(".qr");
+
+    if (qr) qr.classList.remove("unblur");
+    if (overlayQR) { 
+      overlayQR.style.display = "flex"; 
+      overlayQR.style.opacity = "1"; 
+    }
+    if (expires) expires.style.opacity = "0";
+    if (qrContainer) qrContainer.style.opacity = "0";
+    if (qrPlaceholder) qrPlaceholder.style.opacity = "1";
+
+    setTimeout(() => {
+      if (overlayQR) overlayQR.style.opacity = "0";
+      setTimeout(() => {
+        if (overlayQR) overlayQR.style.display = "none";
+        if (expires) expires.style.opacity = "1";
+        if (qrPlaceholder) qrPlaceholder.style.opacity = "0";
+        if (qrContainer) qrContainer.style.opacity = "1";
+        if (qr) qr.classList.add("unblur");
+        startTimer();
+      }, 400);
+    }, 1500);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const homeSeg = document.querySelector('#home .segmented');
+    if (homeSeg) {
+      const firstBtn = homeSeg.querySelector('button');
+      const pill = homeSeg.querySelector('.slider-pill');
+      if (pill && firstBtn) {
+        pill.style.transition = 'none';
+        pill.style.left = firstBtn.offsetLeft + 'px';
+        pill.style.width = firstBtn.offsetWidth + 'px';
+        requestAnimationFrame(() => {
+          pill.style.transition = '';
+        });
+      }
+    }
+  }, 50);
+});
+
+window.addEventListener('resize', () => {
+  const activePage = document.querySelector('.page[style*="display: block"]');
+  if (activePage) {
+    const navIndexMap = { 'homepage': 0, 'vehicles': 1, 'licence-landing': 2, 'payment': 3, 'profile': 4 };
+    const targetIndex = navIndexMap[activePage.id];
+    const activeNav = activePage.querySelector('.bottom-nav');
+    if (activeNav && targetIndex !== undefined) {
+      updateNavPill(activeNav, targetIndex);
+    }
+  }
+});
+
+const clickTarget = document.getElementById('secretText');
+let clicks = 0;
+let timeoutToken = null;
+
+clickTarget?.addEventListener('click', () => {
+    clicks++;
+
+    if (clicks === 1) {
+        timeoutToken = setTimeout(() => {
+            clicks = 0; 
+        }, 2000); 
+    }
+
+    if (clicks >= 5) {
+        clearTimeout(timeoutToken); 
+        
+        document.documentElement.style.overflow = "visible";
+        document.body.style.overflow = "visible";
+        document.documentElement.style.height = "auto";
+        document.body.style.height = "auto";
+        
+        clickTarget.classList.add('success-flash');
+        
+        setTimeout(() => {
+            clickTarget.classList.remove('success-flash');
+        }, 1000);
+
+        clickTarget.style.pointerEvents = "none"; 
+    }
+});
+
+function switchTab(pageId) {
+  const overlay = document.querySelector('.qr-pi .image-overlay');
+  if (overlay) {
+    overlay.style.transition = 'opacity 0.4s ease';
+    overlay.style.opacity = '0.8';
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+    }, 200);
+  }
+
+  lastTab = pageId;
+  const tabMap = { 'home': 'tab-home', 'identity': 'tab-identity', 'age': 'tab-age' };
+  const btnIndex = { 'home': 0, 'identity': 1, 'age': 2 };
+
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+    el.style.position = 'absolute';
+  });
+
+  const target = document.getElementById(tabMap[pageId]);
+  if (target) {
+    target.style.opacity = '1';
+    target.style.pointerEvents = 'auto';
+    target.style.position = 'relative';
+  }
+
+  const seg = document.querySelector('#home .segmented');
+  if (seg) {
+    const buttons = seg.querySelectorAll('button');
+    const pill = seg.querySelector('.slider-pill');
+    const idx = btnIndex[pageId];
+    if (pill && buttons[idx]) {
+      pill.style.left = buttons[idx].offsetLeft + 'px';
+      pill.style.width = buttons[idx].offsetWidth + 'px';
+    }
+    buttons.forEach((b, i) => b.classList.toggle('active', i === idx));
+  }
+
+  const homeApp = document.querySelector('#home.page');
+  if (homeApp && target) {
+    const prevPosition = target.style.position;
+    const prevVisibility = target.style.visibility;
+    target.style.position = 'relative';
+    target.style.visibility = 'visible';
+
+    const contentHeight = target.scrollHeight;
+
+    target.style.position = prevPosition;
+    target.style.visibility = prevVisibility;
+
+    const topOffset = document.querySelector('.image-section')?.getBoundingClientRect().bottom || 0;
+    const extraSpace = 120;
+
+    homeApp.style.overflowY = 'auto';
+    homeApp.style.maxHeight = 'none';
+    homeApp.style.height = (contentHeight + topOffset + extraSpace) + 'px';
+  }
+}
+
+function playToggleSound(unlocked) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(ctx.destination);
+
+  oscillator.type = 'sine';
+  oscillator.frequency.value = unlocked ? 880 : 440;
+
+  gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+  oscillator.start(ctx.currentTime);
+  oscillator.stop(ctx.currentTime + 0.3);
+}
+
+document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+document.getElementById('splash').style.display = 'block';
+
+setTimeout(() => {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById('pin').style.display = 'block';
+}, 500);
+
+applyScrollLockState();
+
+function proficiencyClicked() {
+  const qrInputControls = document.querySelector(".qr-input-controls");
+
+  if (qrInputControls) {
+    qrInputControls.style.display =
+      qrInputControls.style.display === "flex" ? "none" : "flex";
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const navItem = e.target.closest('.bottom-nav .nav-item');
+  if (!navItem) return;
+
+  e.preventDefault();
+
+  const nav = navItem.closest('.bottom-nav');
+  const items = Array.from(nav.querySelectorAll('.nav-item'));
+  const targetIndex = items.indexOf(navItem);
+
+  const pageMap = ['homepage', 'vehicles', 'licence-landing', 'payment', 'profile'];
+  const targetPageId = pageMap[targetIndex];
+
+  if (!targetPageId) return;
+
+  if (targetPageId === 'homepage') {
+    handleHomeNavTap();
+  }
+  
+  showPage(targetPageId);
+});
+
+function openBarcodeModal() {
+  document.getElementById('barcodeModal').classList.add('active');
+}
+
+function closeBarcodeModal() {
+  document.getElementById('barcodeModal').classList.remove('active');
+}
+
+</script>
+</div>
+</body>
+</html>

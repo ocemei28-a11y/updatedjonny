@@ -1,0 +1,19 @@
+{
+  "name": "My Licence App",
+  "short_name": "Licence",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#eef1f4",
+  "background_color": "#eef1f4",
+
+  "icons": [
+    {
+      "src": "logonew.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
