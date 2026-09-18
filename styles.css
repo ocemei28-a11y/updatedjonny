@@ -764,7 +764,15 @@ h3 {
 }
 
 #tab-age {
-  margin-top: 40px;
+  margin-top: 50px;
+}
+
+#tab-identity {
+  margin-top: 50px;
+}
+
+#tab-permit {
+  margin-top: 50px;
 }
 
 #tab-age .age-row {
