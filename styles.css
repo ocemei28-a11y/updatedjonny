@@ -717,7 +717,7 @@ h3 {
 
 .qr-wrap{
   position: relative;
-  margin-top: 10px;
+  margin-top: 30px;
 }
 
 .qr-hotspot{
@@ -2802,4 +2802,25 @@ img {
   background-repeat: repeat, repeat-x;
   background-position: 50% 50%, center center;
   transition: background-position 0.1s ease-out;
+}
+
+.tab-content,
+#permit,
+#identity,
+#age {
+  overflow: visible !important;
+}
+
+.sticky-element {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0; /* Adjust offset based on top header height */
+  z-index: 10;
+}
+
+#tab-identity .sticky-element,
+#identity .sticky-element {
+  display: block !important;
+  position: sticky;
+  top: 0;
 }
