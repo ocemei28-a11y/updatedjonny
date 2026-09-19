@@ -142,13 +142,17 @@ body {
   right: 0;
   z-index: 1000;
   
-  height: 60px;
-  padding: 0 16px;
+  /* Account for iPhone notch/status bar inset */
+  padding-top: env(safe-area-inset-top);
+  height: calc(60px + env(safe-area-inset-top));
+  
+  padding-left: 16px;
+  padding-right: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent; /* Absolutely no solid background background color */
-  pointer-events: none; /* Lets scroll gestures pass through empty space */
+  background: transparent;
+  pointer-events: none;
 }
 
 /* CIRCULAR FLOATING BACK BUTTON (IMAGE 2 STYLE) */
@@ -182,13 +186,12 @@ body {
 .top-header::before {
   content: "";
   position: absolute;
-  top: -40px; /* Extends into status bar area */
+  top: 0; /* Align to the padded top boundary */
   left: 0;
   right: 0;
-  height: 110px;
+  height: calc(110px + env(safe-area-inset-top));
   z-index: 10;
   
-  /* White fade gradient */
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.95) 0%,
@@ -196,27 +199,23 @@ body {
     rgba(255, 255, 255, 0) 100%
   );
   
-  /* Heavy backdrop blur to dissolve underlying text */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   
-  /* Gradient mask to make the blur fade out smoothly at the bottom edge */
   -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);
   mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);
   
   pointer-events: none;
 }
 
-/* ANIMATED HOLOGRAPHIC BACKGROUND LAYER */
 animated-fade-bg {
   position: absolute;
-  top: -40px;
+  top: 0;
   left: 0;
   right: 0;
-  height: 110px;
+  height: calc(110px + env(safe-area-inset-top));
   z-index: 5;
   
-  /* Fixed, non-moving light gradient */
   background: linear-gradient(
     135deg,
     rgba(238, 242, 255, 0.65) 0%,
@@ -224,7 +223,6 @@ animated-fade-bg {
     rgba(255, 255, 255, 0) 100%
   );
   
-  /* Removed animation property completely */
   pointer-events: none;
 }
 
@@ -2235,7 +2233,7 @@ h3 {
     * #qr {box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
     #qr body{background:#FFFFFF;color:#111}
 
-    #qr .app{
+   #qr .app {
   overflow-x: hidden;
   max-width: 390px;
   width: 100%;
@@ -2243,7 +2241,8 @@ h3 {
   margin: 0 auto;
   max-height: 844px;
   background: #FFFFFF;
-  margin-top: 40px;   /* ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â add this line */
+  margin-top: 0; /* Changed from 40px/negative values */
+  padding-top: env(safe-area-inset-top); /* Clear status bar area */
 }
 
     /* top bar */
