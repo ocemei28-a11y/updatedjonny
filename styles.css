@@ -118,11 +118,6 @@ body {
 }
 
 
-#home .nav,
-#identity .nav,
-#age .nav {
-  display: none !important;
-}
 
 .app {
   max-width: 390px;
@@ -1561,7 +1556,7 @@ h3 {
   position: absolute;
   left: 24px;
   right: 16px;        /* or set a fixed width instead, see below */
-  bottom: 100px;       /* sits flush on top of the 100px nav */
+  bottom: 83px;       /* sits flush on top of the 100px nav */
   display: block;
   text-decoration: none;
   border-radius: 10px 10px 0 0;
